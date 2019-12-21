@@ -46,8 +46,8 @@ function buildMetadata() {
   d3.select("#sample-metadata").append("p").text(data[1]);
 //   d3.select("#sample-metadata").append("p").text(data[2]);
 //   d3.select("#sample-metadata").append("p").text(data[3]);
-d3.select("#sample-metadata").append("iframe").attr("src",data[3])
-d3.select("#sample-metadata").append("a").text("Watch on youtube").attr("href",data[2]);
+d3.select("#sample-metadata").append("iframe").attr("src",data[3]);
+// d3.select("#sample-metadata").append("a").text("Watch on youtube").attr("href",data[2]);
   
 	  // // // Use `Object.entries` to add each key and value pair to the panel
 	  // for (key in data) {

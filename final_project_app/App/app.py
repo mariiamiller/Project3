@@ -67,53 +67,28 @@ def extract_max(pitches,magnitudes, shape):
         new_magnitudes.append(np.max(magnitudes[:,i]))
     return (new_pitches,new_magnitudes)
 
-def smooth(x,window_len=11,window='hanning'):
-        if window_len<3:
-                return x
-        if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-                raise ValueError
-        s=np.r_[2*x[0]-x[window_len-1::-1],x,2*x[-1]-x[-1:-window_len:-1]]
-        if window == 'flat': #moving average
-                w=np.ones(window_len,'d')
-        else:
-                w=eval('np.'+window+'(window_len)')
-        y=np.convolve(w/w.sum(),s,mode='same')
-        return y[window_len:-window_len+1]
-def analyse(y,sr,n_fft,hop_length,fmin,fmax):
-    pitches, magnitudes = librosa.core.piptrack(y=y, sr=sr, S=None, n_fft= n_fft, hop_length=hop_length, fmin=fmin, fmax=fmax, threshold=0.75)
-    shape = np.shape(pitches)
-    #nb_samples = total_samples / hop_length
-    nb_samples = shape[0]
-    #nb_windows = n_fft / 2
-    nb_windows = shape[1]
-    pitches,magnitudes = extract_max(pitches, magnitudes, shape)
 
-    pitches1 = smooth(pitches,window_len=5)
-    pitches2 = smooth(pitches,window_len=20)
-    pitches3 = smooth(pitches,window_len=30)
-    pitches4 = smooth(pitches,window_len=40)
+# label_dic = {0: '_amazing_grace_elvis',
+ 	# 1: '_hallelujah',
+ 	# 2: '_hush_little_baby',
+ 	# 3: '_i_want_it_that_way',
+ 	# 4: '_l_o_v_e',
+ 	# 5: '_over_the_rainbow',
+ 	# 6: '_row_row_row_your_boat',
+ 	# 7: '_star_spangled_whitney',
+	# 8: '_the_alphabet_song',
+	# 9: '_twist_and_shout'}
 
-    return pitches1
-def set_variables(sample_f,duration,window_time,fmin,fmax,overlap):
-    total_samples = sample_f * duration
-    #There are sample_f/1000 samples / ms
-    #windowsize = number of samples in one window
-    window_size = sample_f/1000 * window_time
-    hop_length = total_samples / window_size
-    #Calculate number of windows needed
-    needed_nb_windows = total_samples / (window_size - overlap)
-    n_fft = needed_nb_windows * 2.0
-    return total_samples, window_size, needed_nb_windows, n_fft, hop_length
 label_dic = {0: '_amazing_grace_elvis',
  	1: '_hallelujah',
- 	2: '_hush_little_baby',
- 	3: '_i_want_it_that_way',
- 	4: '_l_o_v_e',
- 	5: '_over_the_rainbow',
- 	6: '_row_row_row_your_boat',
- 	7: '_star_spangled_whitney',
-	8: '_the_alphabet_song',
-	9: '_twist_and_shout'}
+ 	#2: '_hush_little_baby',
+ 	2: '_i_want_it_that_way',
+ 	3: '_l_o_v_e',
+ 	4: '_over_the_rainbow',
+ 	5: '_row_row_row_your_boat',
+ 	6: '_star_spangled_whitney',
+	7: '_the_alphabet_song',
+	8: '_twist_and_shout'}
 @app.route("/")
 def index():
     """Return the homepage."""
@@ -147,7 +122,7 @@ def predict():
 	sg2 = librosa.amplitude_to_db(sg1, ref=np.min)
 	sg2 = (np.expand_dims(sg2,0))
 	path2='static/models/songs525/'
-	model=load_model(path2+'songs525.h5')
+	model=load_model(path2+'songs525_9.h5')
 	#df=pd.read_csv(path2+'megamodel_labels.csv')
 
 	encoded_prediction = int(model.predict_classes(sg2))
