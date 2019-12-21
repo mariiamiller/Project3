@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Kareokee</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <!-- <link rel="stylesheet" type="text/css" href="style.css"> -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   </head>
   <body>
@@ -16,12 +16,17 @@
   	 <button id="stopButton" disabled>Stop</button>
     </div>
     <div id="formats">Format: start recording to see sample rate</div>
-  	<h3>Recordings</h3>
-  	<ol id="recordingsList"></ol>
-
+  	<!-- <h3>Recordings</h3>
+  	<ol id="recordingsList"></ol> -->
+    <div id="sample-metadata" class="panel-body"></div>
     <!-- inserting these scripts at the end to be able to use all the elements in the DOM -->
   	<script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
-    <script src="app.js"></script>
+    <script
+  src="https://code.jquery.com/jquery-3.4.1.js"
+  integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+  crossorigin="anonymous"></script>
+    <!-- <script src="app.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.5.0/d3.js"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/button.js') }}"></script>
     

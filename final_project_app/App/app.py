@@ -1,20 +1,29 @@
 import os
-
+import glob
 import pandas as pd
 import numpy as np
 import requests
 import time
 import csv
 import json
+import datetime
 from bs4 import BeautifulSoup
+import librosa
+from tensorflow.keras.models import load_model
+import librosa
+import librosa.display
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from tensorflow.keras.utils import to_categorical
 # import sqlalchemy
 # from sqlalchemy.ext.automap import automap_base
 # from sqlalchemy.orm import Session
 # from sqlalchemy import create_engine
 
-from flask import Flask, jsonify, render_template, redirect
+from flask import Flask, jsonify, render_template, redirect, request
 # from flask_sqlalchemy import SQLAlchemy
 from flask_pymongo import PyMongo
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
@@ -47,14 +56,105 @@ app = Flask(__name__)
 # surprise_sum = Base.classes.surprise_summary_clean
 
 print("test1")
-mongo = PyMongo(app, uri="mongodb://localhost:27017/mars_app")
+#db = PyMongo(app, uri="mongodb://localhost:27017/songs_db")
+client = MongoClient(port=27017)
+db = client.songs_db
+def extract_max(pitches,magnitudes, shape):
+    new_pitches = []
+    new_magnitudes = []
+    for i in range(0, shape[1]):
+        new_pitches.append(np.max(pitches[:,i]))
+        new_magnitudes.append(np.max(magnitudes[:,i]))
+    return (new_pitches,new_magnitudes)
 
+def smooth(x,window_len=11,window='hanning'):
+        if window_len<3:
+                return x
+        if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+                raise ValueError
+        s=np.r_[2*x[0]-x[window_len-1::-1],x,2*x[-1]-x[-1:-window_len:-1]]
+        if window == 'flat': #moving average
+                w=np.ones(window_len,'d')
+        else:
+                w=eval('np.'+window+'(window_len)')
+        y=np.convolve(w/w.sum(),s,mode='same')
+        return y[window_len:-window_len+1]
+def analyse(y,sr,n_fft,hop_length,fmin,fmax):
+    pitches, magnitudes = librosa.core.piptrack(y=y, sr=sr, S=None, n_fft= n_fft, hop_length=hop_length, fmin=fmin, fmax=fmax, threshold=0.75)
+    shape = np.shape(pitches)
+    #nb_samples = total_samples / hop_length
+    nb_samples = shape[0]
+    #nb_windows = n_fft / 2
+    nb_windows = shape[1]
+    pitches,magnitudes = extract_max(pitches, magnitudes, shape)
+
+    pitches1 = smooth(pitches,window_len=5)
+    pitches2 = smooth(pitches,window_len=20)
+    pitches3 = smooth(pitches,window_len=30)
+    pitches4 = smooth(pitches,window_len=40)
+
+    return pitches1
+def set_variables(sample_f,duration,window_time,fmin,fmax,overlap):
+    total_samples = sample_f * duration
+    #There are sample_f/1000 samples / ms
+    #windowsize = number of samples in one window
+    window_size = sample_f/1000 * window_time
+    hop_length = total_samples / window_size
+    #Calculate number of windows needed
+    needed_nb_windows = total_samples / (window_size - overlap)
+    n_fft = needed_nb_windows * 2.0
+    return total_samples, window_size, needed_nb_windows, n_fft, hop_length
+label_dic = {0: '_amazing_grace_elvis',
+ 	1: '_hallelujah',
+ 	2: '_hush_little_baby',
+ 	3: '_i_want_it_that_way',
+ 	4: '_l_o_v_e',
+ 	5: '_over_the_rainbow',
+ 	6: '_row_row_row_your_boat',
+ 	7: '_star_spangled_whitney',
+	8: '_the_alphabet_song',
+	9: '_twist_and_shout'}
 @app.route("/")
 def index():
     """Return the homepage."""
     return render_template("index.html")
 
+@app.route("/postblob", methods=['POST'])
+def post():
+	file = request.files['file']
+	path='static/audiofiles'
+	#root = r'/Users/mariamiller/Documents/project3'
+	dt = datetime.datetime.now()
+	fileFullPath = r'%s/%s.wav' % (path, dt.strftime("%Y%m%d-%H%M%S%f")[:-3] )
+	file.save(fileFullPath)
+	return "Hello"
 
+@app.route('/predict/', methods=['GET', 'POST'])
+def predict():
+	path='static/audiofiles/'
+	#root = r'/Users/mariamiller/Documents/project3'
+	list_of_files = glob.glob(path + '*') # * means all if need specific format then *.csv
+	latest_file = max(list_of_files, key=os.path.getctime)
+	#latest_file = path + '20191220-012137005.wav'
+	y,sr = librosa.load(latest_file)
+	#y = np.tile(y,4)
+	#y = y[:sr*60]
+	y = np.tile(y,2)
+	y = y[:sr*20]
+	sg0 = librosa.stft(y)
+	sg_mag, sg_phase = librosa.magphase(sg0)
+	sg1 = librosa.feature.melspectrogram(S=sg_mag, sr = sr)
+	sg2 = librosa.amplitude_to_db(sg1, ref=np.min)
+	sg2 = (np.expand_dims(sg2,0))
+	path2='static/models/songs525/'
+	model=load_model(path2+'songs525.h5')
+	#df=pd.read_csv(path2+'megamodel_labels.csv')
+
+	encoded_prediction = int(model.predict_classes(sg2))
+	song = label_dic[int(encoded_prediction)]
+	result = db.songs_links.find_one({'songid':song})
+	embed_link = 'https://www.youtube.com/embed/'+ result['song_youtube_link'].split('=')[-1]
+	return jsonify([result['song_name'],result['song_description'],result['song_youtube_link'],embed_link])
 
 
 
@@ -83,4 +183,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

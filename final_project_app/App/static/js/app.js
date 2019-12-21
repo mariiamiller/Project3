@@ -19,6 +19,45 @@ recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
 pauseButton.addEventListener("click", pauseRecording);
 
+function buildMetadata() {
+
+	// @TODO: Complete the following function that builds the metadata panel
+	url = "/predict";
+	// var url = "/names/"+symbol;
+	//Use `d3.json` to fetch the metadata for a sample
+	
+	var data = []
+   // d3.json(url, function (json) {
+	 d3.json(url).then(function(data) { 
+  
+	console.log(data);
+	
+  
+  
+	  // Use d3 to select the panel with id of `#sample-metadata`
+  var sampleMetadata = d3.select("#sample-metadata")
+  // Use `.html("") to clear any existing metadata
+  sampleMetadata.selectAll("h2").remove();
+  sampleMetadata.selectAll("p").remove();
+  sampleMetadata.selectAll("a").remove();
+  sampleMetadata.selectAll("iframe").remove();
+  
+  d3.select("#sample-metadata").append("h2").text(data[0]);
+  d3.select("#sample-metadata").append("p").text(data[1]);
+//   d3.select("#sample-metadata").append("p").text(data[2]);
+//   d3.select("#sample-metadata").append("p").text(data[3]);
+d3.select("#sample-metadata").append("iframe").attr("src",data[3])
+d3.select("#sample-metadata").append("a").text("Watch on youtube").attr("href",data[2]);
+  
+	  // // // Use `Object.entries` to add each key and value pair to the panel
+	  // for (key in data) {
+	  //   line = data[key];
+	  // d3.select("#sample-metadata").append("p").text(line);
+	
+	  // }
+	});
+  }
+
 function startRecording() {
 	console.log("recordButton clicked");
 
@@ -112,7 +151,26 @@ function stopRecording() {
 	gumStream.getAudioTracks()[0].stop();
 
 	//create the wav blob and pass it on to createDownloadLink
-	rec.exportWAV(createDownloadLink);
+	//rec.exportWAV(createDownloadLink);
+	rec.exportWAV(postBlob);
+	buildMetadata();
+	
+}
+
+function postBlob(blob){
+    var formData = new FormData()
+    formData.append('file', blob);
+
+    $.ajax({
+        url: "/postblob", 
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(data) {
+            console.log(data);
+        }
+    });
 }
 
 function createDownloadLink(blob) {
